@@ -1,0 +1,187 @@
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, login_user, UserMixin, login_required, current_user, logout_user
+
+app = Flask(__name__)
+CORS(app, supports_credentials=True)
+
+# --- CONFIGURAÇÃO DO BANCO DE DADOS ---
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'sua-chave-secreta-super-secreta'
+db = SQLAlchemy(app)
+# ------------------------------------
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+
+# --- CONFIGURAÇÃO DO FLASK-LOGIN ---
+login_manager = LoginManager(app)
+# login_manager.login_view = 'login' # Não precisamos mais disso para a API
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# ADICIONE ESTA NOVA FUNÇÃO ABAIXO
+@login_manager.unauthorized_handler
+def unauthorized():
+    # Esta função será chamada sempre que um usuário não logado
+    # tentar acessar uma rota protegida.
+    return jsonify({'erro': 'Login necessário para acessar este recurso'}), 401
+# ------------------------------------
+
+# Modelo de Usuário
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    metas = db.relationship('Meta', backref='owner', lazy=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+# ---------------------------------
+
+# --- MODELO DA TABELA DE METAS ---
+class Meta(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    texto = db.Column(db.String(200), nullable=False)
+    concluida = db.Column(db.Boolean, default=False)
+    # Chave Estrangeira: A coluna que liga a Meta ao seu dono (User)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'texto': self.texto,
+            'concluida': self.concluida,
+            'user_id': self.user_id
+        }
+# ---------------------------------
+
+# --- ROTAS DA API (Ainda usam a lista antiga, vamos mudar isso depois) ---
+
+@app.route('/metas', methods=['GET'])
+@login_required # <-- O SEGURANÇA NA PORTA
+def get_metas():
+    # 1. Busca as metas filtrando pelo "dono" (owner).
+    # Agradecemos ao 'backref' que definimos no modelo User.
+    # Ele nos permite usar 'current_user.metas' para pegar só as metas deste usuário.
+    metas_do_usuario = current_user.metas
+
+    # 2. Converte a lista de objetos para uma lista de dicionários.
+    lista_de_metas_dict = [meta.to_dict() for meta in metas_do_usuario]
+
+    # 3. Retorna o JSON.
+    return jsonify(lista_de_metas_dict)
+    
+
+@app.route('/metas', methods=['POST'])
+def add_meta():
+    # 1. Pega o JSON enviado na requisição.
+    dados = request.get_json()
+
+    # Validação simples: verifica se o campo 'texto' foi enviado.
+    if 'texto' not in dados or not dados['texto'].strip():
+        return jsonify({'erro': 'O campo "texto" é obrigatório'}), 400
+
+    # 2. Cria um novo objeto 'Meta' com os dados recebidos.
+    # Estamos criando uma instância da nossa classe/modelo 'Meta'.
+    # Cria a nova meta, já associando o 'owner' ao usuário logado.
+    nova_meta = Meta(texto=dados['texto'], user_id=current_user.id)
+
+    # 3. Adiciona o novo objeto à sessão do banco de dados.
+    # Pense nisso como "preparar" a alteração para ser salva.
+    db.session.add(nova_meta)
+
+    # 4. Salva (commit) as alterações no banco de dados.
+    # Este é o comando que efetivamente escreve os dados no arquivo 'database.db'.
+    db.session.commit()
+
+    # 5. Retorna a meta recém-criada como JSON, com o status 201 (Created).
+    return jsonify(nova_meta.to_dict()), 201
+
+# ---------------------------------
+
+# --- ROTA DE CADASTRO ---
+@app.route('/register', methods=['POST'])
+def register():
+    # 1. Pega os dados (email e senha) do JSON enviado.
+    dados = request.get_json()
+    email = dados.get('email')
+    password = dados.get('password')
+
+    # 2. Validação básica: verifica se email e senha foram enviados.
+    if not email or not password:
+        return jsonify({'erro': 'Email e senha são obrigatórios'}), 400
+
+    # 3. Verifica se o usuário já existe no banco de dados.
+    # Filtramos a tabela User pelo email recebido e pegamos o primeiro resultado.
+    if User.query.filter_by(email=email).first():
+        return jsonify({'erro': 'Este seu email já está cadastrado!'}), 409 # 409 Conflict
+
+    # 4. Cria um novo usuário.
+    novo_usuario = User(email=email)
+    # Usa a nossa função segura para definir a senha (que será criptografada).
+    novo_usuario.set_password(password)
+
+    # 5. Adiciona e salva o novo usuário no banco de dados.
+    db.session.add(novo_usuario)
+    db.session.commit()
+
+    # 6. Retorna uma resposta de sucesso.
+    return jsonify({'sucesso': f'Usuário {email} criado com sucesso!'}), 201
+
+# ---------------------------------
+
+# --- ROTA DE LOGIN ---
+@app.route('/login', methods=['POST'])
+def login():
+    # 1. Pega os dados do JSON.
+    dados = request.get_json()
+    email = dados.get('email')
+    password = dados.get('password')
+
+    # 2. Busca o usuário no banco de dados pelo email.
+    user = User.query.filter_by(email=email).first()
+
+    # 3. Verifica se o usuário existe E se a senha está correta.
+    # Usamos nossa função 'check_password' que compara a senha enviada com o hash salvo.
+    if not user or not user.check_password(password):
+        # Se o usuário não existe ou a senha está errada, damos uma mensagem genérica.
+        # Isso evita que um atacante saiba se um email está cadastrado ou não.
+        return jsonify({'erro': 'Email ou senha inválidos'}), 401 # 401 Unauthorized
+
+    # 4. Se chegou até aqui, as credenciais são válidas. Logamos o usuário!
+    # A função 'login_user' do Flask-Login cuida de toda a mágica da sessão.
+    login_user(user)
+
+    return jsonify({'sucesso': f'Login bem-sucedido para {user.email}',
+                    'user': { 'id': user.id, 'email': user.email }
+    })
+
+# ---------------------------------
+
+# --- ROTA DE CHECK_SESSION ---
+@app.route('/check_session')
+@login_required
+def check_session():
+    return jsonify({
+        'id': current_user.id,
+        'email': current_user.email
+    })
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'sucesso': 'Logout bem-sucedido'})
+
+# ---------------------------------
+
+if __name__ == '__main__':
+    app.run(debug=True)
