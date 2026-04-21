@@ -2,36 +2,57 @@ import React, { useState, useEffect, useContext } from 'react'; // 1. Importar u
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext'; // 2. Importar nosso AuthContext
 
+
 function ListaMetas({ metas }) {
-
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white/80 flex items-center gap-3">
-        <span className="w-8 h-1 bg-dourado-farol rounded-full block"></span>
-        Seus Pontos de Luz
-      </h2>
-
-      {metas.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed border-white/5 rounded-3xl">
-          <p className="text-cinza-suave">O horizonte está limpo. Que tal iluminar um novo passo?</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {metas.map((meta) => (
-            <div 
-              key={meta.id} 
-              className="group bg-white/5 border border-white/10 p-6 rounded-2xl hover:bg-white/10 hover:border-dourado-farol/30 hover:shadow-glow transition-all duration-500 cursor-default"
-            >
-              <div className="flex justify-between items-center">
-                <p className="text-lg text-white/90 group-hover:text-white transition-colors">
-                  {meta.texto}
-                </p>
-                <div className="w-2 h-2 rounded-full bg-dourado-farol shadow-[0_0_8px_rgba(250,204,21,0.8)] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+    <div className="grid gap-6">
+      {metas.map((porto) => (
+        <div 
+          key={porto.id} 
+          className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:border-dourado-farol/30 transition-all group"
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-dourado-farol text-sm font-bold tracking-widest uppercase">
+                  Porto Seguro
+                </span>
+                {porto.concluido && (
+                  <span className="bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 rounded-full border border-green-500/30">
+                    ALCANÇADO
+                  </span>
+                )}
               </div>
+              {/* O 'texto' que vem do backend agora é tratado como Título */}
+              <h3 className="text-xl font-bold text-white group-hover:text-dourado-farol transition-colors">
+                {porto.texto}
+              </h3>
             </div>
-          ))}
+            
+            {/* Botão de Checkbox Estilizado */}
+            <button className="w-8 h-8 rounded-full border-2 border-white/10 flex items-center justify-center hover:border-dourado-farol transition-all">
+               {porto.concluido ? '⚓' : ''}
+            </button>
+          </div>
+
+          {/* Exibição da Descrição (A nova alma do Porto Seguro) */}
+          {porto.descricao && (
+            <p className="text-cinza-suave text-sm leading-relaxed mb-4">
+              {porto.descricao}
+            </p>
+          )}
+
+          {/* Área que receberá os Pontos de Luz no futuro */}
+          <div className="mt-6 pt-6 border-t border-white/5">
+            <div className="flex justify-between items-center text-xs text-white/40">
+              <span>0 Pontos de Luz acesos</span>
+              <button className="text-dourado-farol/60 hover:text-dourado-farol font-medium transition-colors">
+                + Adicionar Ponto de Luz
+              </button>
+            </div>
+          </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }

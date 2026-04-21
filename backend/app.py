@@ -40,7 +40,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    metas = db.relationship('Meta', backref='owner', lazy=True)
+    portos = db.relationship('PortoSeguro', backref='owner', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -81,44 +81,41 @@ class PontoDeLuz(db.Model):
 # --- ROTAS DA API (Ainda usam a lista antiga, vamos mudar isso depois) ---
 
 @app.route('/metas', methods=['GET'])
-@login_required # <-- O SEGURANÇA NA PORTA
+@login_required
 def get_metas():
-    # 1. Busca as metas filtrando pelo "dono" (owner).
-    # Agradecemos ao 'backref' que definimos no modelo User.
-    # Ele nos permite usar 'current_user.metas' para pegar só as metas deste usuário.
-    metas_do_usuario = current_user.metas
-
-    # 2. Converte a lista de objetos para uma lista de dicionários.
-    lista_de_metas_dict = [meta.to_dict() for meta in metas_do_usuario]
-
-    # 3. Retorna o JSON.
-    return jsonify(lista_de_metas_dict)
+    # Agora buscamos todos os Portos Seguros do usuário logado
+    portos = PortoSeguro.query.filter_by(user_id=current_user.id).order_by(PortoSeguro.data_criacao.desc()).all()
+    
+    # Transformamos em uma lista de dicionários para o JSON
+    return jsonify([{
+        'id': p.id,
+        'texto': p.titulo, # Mantivemos a chave 'texto' para não quebrar o frontend ainda
+        'descricao': p.descricao,
+        'concluido': p.concluido,
+        'data_criacao': p.data_criacao.isoformat()
+    } for p in portos])
     
 
 @app.route('/metas', methods=['POST'])
-def add_meta():
-    # 1. Pega o JSON enviado na requisição.
+@login_required
+def add_porto():
     dados = request.get_json()
-
-    # Validação simples: verifica se o campo 'texto' foi enviado.
-    if 'texto' not in dados or not dados['texto'].strip():
-        return jsonify({'erro': 'O campo "texto" é obrigatório'}), 400
-
-    # 2. Cria um novo objeto 'Meta' com os dados recebidos.
-    # Estamos criando uma instância da nossa classe/modelo 'Meta'.
-    # Cria a nova meta, já associando o 'owner' ao usuário logado.
-    nova_meta = Meta(texto=dados['texto'], user_id=current_user.id)
-
-    # 3. Adiciona o novo objeto à sessão do banco de dados.
-    # Pense nisso como "preparar" a alteração para ser salva.
-    db.session.add(nova_meta)
-
-    # 4. Salva (commit) as alterações no banco de dados.
-    # Este é o comando que efetivamente escreve os dados no arquivo 'database.db'.
+    
+    # Validação mínima (Robustez!)
+    if not dados or 'texto' not in dados:
+        return jsonify({'erro': 'O título do Porto Seguro é obrigatório'}), 400
+    
+    novo_porto = PortoSeguro(
+        titulo=dados['texto'],
+        descricao=dados.get('descricao', ''), # Usa .get() para evitar erro se não vier nada
+        user_id=current_user.id
+        # O prazo podemos adicionar depois que fizermos o seletor de data no front
+    )
+    
+    db.session.add(novo_porto)
     db.session.commit()
-
-    # 5. Retorna a meta recém-criada como JSON, com o status 201 (Created).
-    return jsonify(nova_meta.to_dict()), 201
+    
+    return jsonify({'id': novo_porto.id, 'mensagem': 'Porto Seguro criado!'}), 201
 
 # ---------------------------------
 

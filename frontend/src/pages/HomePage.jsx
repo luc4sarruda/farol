@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import ListaMetas from '../components/ListaMetas';
-import FormularioMeta from '../components/FormularioMeta';
+import FormularioPorto from '../components/FormularioPorto';
 
 function HomePage() {
   // Pegamos o usuário e a função de logout do nosso contexto global.
@@ -61,10 +61,15 @@ function HomePage() {
       </header>
 
       <main className="space-y-12">
-        {/* Seção de Entrada */}
-        <section className="bg-white/5 p-8 rounded-3xl border border-white/5">
-          <h2 className="text-xl font-semibold mb-6 text-white/90">Novo Ponto de Luz</h2>
-          <FormularioMeta onMetaAdicionada={fetchMetas} />
+        {/* Seção de Entrada - Agora focada no Porto Seguro */}
+        <section className="bg-white/5 p-8 rounded-3xl border border-white/5 shadow-2xl backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-6">
+            {/* Um ícone sutil para dar peso visual ao Porto Seguro */}
+            <span className="text-2xl">⚓</span>
+            <h2 className="text-xl font-semibold text-white/90">Estabelecer Novo Porto Seguro</h2>
+          </div>
+  
+          <FormularioPorto onPortoAdicionado={fetchMetas} />
         </section>
 
         {/* Seção de Lista */}
