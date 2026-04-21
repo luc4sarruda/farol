@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function FormularioMeta() {
+function FormularioMeta({ onMetaAdicionada }) {
   // 'useState' para guardar o texto que o usuário digita no campo
   const [texto, setTexto] = useState('');
 
@@ -17,7 +17,7 @@ function FormularioMeta() {
     axios.post('http://127.0.0.1:5000/metas', { texto: texto })
       .then(() => {
         setTexto('');
-        window.location.reload(); 
+        onMetaAdicionada();
       })
       .catch(error => console.error("Erro:", error));
   };

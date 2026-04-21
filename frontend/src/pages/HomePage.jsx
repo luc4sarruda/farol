@@ -1,15 +1,31 @@
-import React, { useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import axios from 'axios';
 import ListaMetas from '../components/ListaMetas';
 import FormularioMeta from '../components/FormularioMeta';
-
-// Não precisamos mais do 'useNavigate' aqui, pois a navegação
-// após o logout será cuidada automaticamente pelo ProtectedRoute.
 
 function HomePage() {
   // Pegamos o usuário e a função de logout do nosso contexto global.
   const { user, logout } = useContext(AuthContext);
+  const [metas, setMetas] = useState([]);
 
+  const fetchMetas = useCallback(() => {
+    if (user) {
+      axios.get('http://127.0.0.1:5000/metas')
+        .then(response => { setMetas(response.data); })
+        .catch(error => {
+          console.error("Erro ao buscar metas:", error);
+          setMetas([]);
+        });
+    } else {
+      setMetas([]);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchMetas();
+  }, [fetchMetas]);
+        
   const handleLogout = async () => {
     try {
       // A única responsabilidade deste botão é MUDAR O ESTADO,
@@ -37,7 +53,7 @@ function HomePage() {
         </div>
         
         <button 
-          onClick={() => logout()}
+          onClick={handleLogout}
           className="px-5 py-2 border border-dourado-farol/30 text-dourado-farol rounded-lg hover:bg-dourado-farol hover:text-azul-noturno transition-all duration-300 font-semibold text-sm"
         >
           Sair
@@ -48,12 +64,12 @@ function HomePage() {
         {/* Seção de Entrada */}
         <section className="bg-white/5 p-8 rounded-3xl border border-white/5">
           <h2 className="text-xl font-semibold mb-6 text-white/90">Novo Ponto de Luz</h2>
-          <FormularioMeta />
+          <FormularioMeta onMetaAdicionada={fetchMetas} />
         </section>
 
         {/* Seção de Lista */}
         <section>
-          <ListaMetas />
+          <ListaMetas metas={metas} />
         </section>
       </main>
     </div>
