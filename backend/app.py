@@ -3,6 +3,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, UserMixin, login_required, current_user, logout_user
+from flask_migrate import Migrate
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -12,6 +14,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'sua-chave-secreta-super-secreta'
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 # ------------------------------------
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -46,21 +49,33 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
 # ---------------------------------
 
-# --- MODELO DA TABELA DE METAS ---
-class Meta(db.Model):
+# --- MODELO DA TABELA DE METAS: PONTOS DE LUZ E PORTOS SEGUROS ---
+class PortoSeguro(db.Model):
+    __tablename__ = 'porto_seguro'
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(100), nullable=False)
+    descricao = db.Column(db.String(500))
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    prazo = db.Column(db.DateTime, nullable=True) # O usuário escolhe no futuro
+    concluido = db.Column(db.Boolean, default=False)
+    
+    # Chave estrangeira para o Usuário
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relação para acessar os Pontos de Luz facilmente no Python
+    # O 'backref' cria uma propriedade virtual no PontoDeLuz chamada 'porto'
+    pontos_de_luz = db.relationship('PontoDeLuz', backref='porto', lazy=True, cascade="all, delete-orphan")
+
+class PontoDeLuz(db.Model):
+    __tablename__ = 'ponto_de_luz'
     id = db.Column(db.Integer, primary_key=True)
     texto = db.Column(db.String(200), nullable=False)
-    concluida = db.Column(db.Boolean, default=False)
-    # Chave Estrangeira: A coluna que liga a Meta ao seu dono (User)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'texto': self.texto,
-            'concluida': self.concluida,
-            'user_id': self.user_id
-        }
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    prazo = db.Column(db.DateTime, nullable=True)
+    concluido = db.Column(db.Boolean, default=False)
+    
+    # Chave estrangeira ligando o Ponto de Luz ao seu Porto Seguro correspondente
+    porto_seguro_id = db.Column(db.Integer, db.ForeignKey('porto_seguro.id'), nullable=False)
 # ---------------------------------
 
 # --- ROTAS DA API (Ainda usam a lista antiga, vamos mudar isso depois) ---
