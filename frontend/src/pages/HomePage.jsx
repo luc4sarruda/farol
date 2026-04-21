@@ -24,22 +24,37 @@ function HomePage() {
   };
 
   return (
-    <div>
-      <header style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '20px' 
-      }}>
-        {/* Usamos 'user?.email' como uma segurança caso o objeto 'user' ainda não tenha carregado */}
-        <h2>Farol de {user?.email}</h2>
-        <button onClick={handleLogout}>Sair</button>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Header com efeito de vidro */}
+      <header className="flex justify-between items-center p-6 mb-12 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
+        <div>
+          <h1 className="text-3xl font-bold text-dourado-farol drop-shadow-glow">
+            Farol
+          </h1>
+          <p className="text-cinza-suave text-sm mt-1">
+            Rumo de: <span className="text-white font-medium">{user?.email}</span>
+          </p>
+        </div>
+        
+        <button 
+          onClick={() => logout()}
+          className="px-5 py-2 border border-dourado-farol/30 text-dourado-farol rounded-lg hover:bg-dourado-farol hover:text-azul-noturno transition-all duration-300 font-semibold text-sm"
+        >
+          Sair
+        </button>
       </header>
-      
-      <main>
-        <h3>Minhas Metas</h3>
-        <FormularioMeta />
-        <ListaMetas />
+
+      <main className="space-y-12">
+        {/* Seção de Entrada */}
+        <section className="bg-white/5 p-8 rounded-3xl border border-white/5">
+          <h2 className="text-xl font-semibold mb-6 text-white/90">Novo Ponto de Luz</h2>
+          <FormularioMeta />
+        </section>
+
+        {/* Seção de Lista */}
+        <section>
+          <ListaMetas />
+        </section>
       </main>
     </div>
   );

@@ -4,7 +4,6 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProtectedRoute from './components/ProtectedRoute'; // IMPORTAR
-import './App.css';
 
 function App() {
   return (
