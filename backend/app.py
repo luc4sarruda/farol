@@ -148,6 +148,24 @@ def add_ponto_de_luz(porto_id):
         'mensagem': 'Ponto de luz aceso!'
     }), 201
 
+
+@app.route('/pontos/<int:ponto_id>/toggle', methods=['PATCH'])
+@login_required
+def toggle_ponto(ponto_id):
+    # 1. Busca o ponto ou retorna 404
+    ponto = PontoDeLuz.query.get_or_404(ponto_id)
+    
+    # 2. SEGURANÇA: Verificamos se o Ponto pertence a um Porto do usuário logado
+    # Graças ao backref='porto' que criamos no model, podemos acessar o pai direto
+    if ponto.porto.user_id != current_user.id:
+        return jsonify({'erro': 'Acesso negado'}), 403
+
+    # 3. Inverte o status (Toggle)
+    ponto.concluido = not ponto.concluido
+    db.session.commit()
+    
+    return jsonify({'id': ponto.id, 'concluido': ponto.concluido})
+
 # ---------------------------------
 
 # --- ROTA DE CADASTRO ---

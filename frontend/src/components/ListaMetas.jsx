@@ -26,6 +26,15 @@ function ListaMetas({ metas, onUpdate }) {
     }
   };
 
+  const handleTogglePonto = async (pontoId) => {
+    try {
+      await axios.patch(`http://127.0.0.1:5000/pontos/${pontoId}/toggle`);
+      onUpdate(); // Atualiza a lista para refletir a mudança
+    } catch (error) {
+      console.error("Erro ao alternar status do ponto:", error);
+    }
+  };
+
   return (
     <div className="grid gap-6">
       {metas.map((porto) => (
@@ -44,9 +53,24 @@ function ListaMetas({ metas, onUpdate }) {
           {/* LISTAGEM DOS PONTOS DE LUZ (Submetas) */}
           <div className="space-y-3 mb-6">
             {porto.pontos_de_luz?.map((ponto) => (
-              <div key={ponto.id} className="flex items-center gap-3 text-sm text-white/70 bg-white/5 p-2 rounded-lg border border-white/5">
-                <div className={`w-2 h-2 rounded-full ${ponto.concluido ? 'bg-dourado-farol shadow-glow' : 'bg-white/20'}`} />
-                {ponto.texto}
+              <div 
+                key={ponto.id} 
+                onClick={() => handleTogglePonto(ponto.id)}
+                className="flex items-center gap-3 text-sm cursor-pointer group/ponto"
+              >
+                {/* O Círculo de Status */}
+                <div className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center
+                  ${ponto.concluido 
+                    ? 'bg-dourado-farol border-dourado-farol shadow-glow' 
+                    : 'border-white/20 group-hover/ponto:border-dourado-farol/50'}`}
+                >
+                  {ponto.concluido && <span className="text-[10px] text-azul-noturno">✓</span>}
+                </div>
+
+                {/* O Texto com efeito de riscado se concluído */}
+                <span className={`transition-all ${ponto.concluido ? 'text-white/30 line-through' : 'text-white/70'}`}>
+                  {ponto.texto}
+                </span>
               </div>
             ))}
           </div>
