@@ -74,7 +74,7 @@ function HomePage() {
 
         {/* Seção de Lista */}
         <section>
-          <ListaMetas metas={metas} />
+          <ListaMetas metas={metas} onUpdate={fetchMetas} /> />
         </section>
       </main>
     </div>

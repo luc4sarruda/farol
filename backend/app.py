@@ -84,7 +84,7 @@ class PontoDeLuz(db.Model):
 @login_required
 def get_metas():
     # Agora buscamos todos os Portos Seguros do usuário logado
-    portos = PortoSeguro.query.filter_by(user_id=current_user.id).order_by(PortoSeguro.data_criacao.desc()).all()
+    portos = PortoSeguro.query.filter_by(user_id=current_user.id).all()
     
     # Transformamos em uma lista de dicionários para o JSON
     return jsonify([{
@@ -92,7 +92,12 @@ def get_metas():
         'texto': p.titulo, # Mantivemos a chave 'texto' para não quebrar o frontend ainda
         'descricao': p.descricao,
         'concluido': p.concluido,
-        'data_criacao': p.data_criacao.isoformat()
+        'data_criacao': p.data_criacao.isoformat(),
+        'pontos_de_luz': [{
+            'id': pt.id,
+            'texto': pt.texto,
+            'concluido': pt.concluido
+        } for pt in p.pontos_de_luz]
     } for p in portos])
     
 
@@ -116,6 +121,32 @@ def add_porto():
     db.session.commit()
     
     return jsonify({'id': novo_porto.id, 'mensagem': 'Porto Seguro criado!'}), 201
+
+
+@app.route('/metas/<int:porto_id>/pontos', methods=['POST'])
+@login_required
+def add_ponto_de_luz(porto_id):
+    # 1. Verificamos se o Porto Seguro realmente existe e pertence ao usuário
+    porto = PortoSeguro.query.filter_by(id=porto_id, user_id=current_user.id).first_or_404()
+    
+    dados = request.get_json()
+    if not dados or 'texto' not in dados:
+        return jsonify({'erro': 'O texto do Ponto de Luz é obrigatório'}), 400
+    
+    # 2. Criamos o Ponto de Luz ancorado ao ID do porto
+    novo_ponto = PontoDeLuz(
+        texto=dados['texto'],
+        porto_seguro_id=porto.id
+    )
+    
+    db.session.add(novo_ponto)
+    db.session.commit()
+    
+    return jsonify({
+        'id': novo_ponto.id, 
+        'texto': novo_ponto.texto,
+        'mensagem': 'Ponto de luz aceso!'
+    }), 201
 
 # ---------------------------------
 
