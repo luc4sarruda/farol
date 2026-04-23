@@ -147,6 +147,15 @@ def add_ponto_de_luz(porto_id):
         'texto': novo_ponto.texto,
         'mensagem': 'Ponto de luz aceso!'
     }), 201
+    
+
+@app.route('/metas/<int:porto_id>/toggle', methods=['PATCH'])
+@login_required
+def toggle_porto(porto_id):
+    porto = PortoSeguro.query.filter_by(id=porto_id, user_id=current_user.id).first_or_404()
+    porto.concluido = not porto.concluido
+    db.session.commit()
+    return jsonify({'id': porto.id, 'concluido': porto.concluido})
 
 
 @app.route('/pontos/<int:ponto_id>/toggle', methods=['PATCH'])

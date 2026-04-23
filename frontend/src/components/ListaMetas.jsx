@@ -35,19 +35,65 @@ function ListaMetas({ metas, onUpdate }) {
     }
   };
 
+  const handleTogglePorto = async (portoId) => {
+  try {
+    // Usaremos uma rota similar à dos pontos no backend
+    await axios.patch(`http://127.0.0.1:5000/metas/${portoId}/toggle`);
+    onUpdate(); 
+  } catch (error) {
+    console.error("Erro ao concluir Porto Seguro:", error);
+  }
+};
+
   return (
     <div className="grid gap-6">
-      {metas.map((porto) => (
+      {metas.map((porto) => {
+        // --- CÁLCULO DE PROGRESSO (ROBUSTEZ EM TEMPO REAL) ---
+      const totalPontos = porto.pontos_de_luz?.length || 0;
+      const pontosConcluidos = porto.pontos_de_luz?.filter(p => p.concluido).length || 0;
+      const porcentagem = totalPontos > 0 ? Math.round((pontosConcluidos / totalPontos) * 100) : 0;
+        
+      return (
         <div key={porto.id} className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:border-dourado-farol/20 transition-all group">
           {/* Cabeçalho do Porto Seguro */}
           <div className="flex justify-between items-start mb-4">
-            <h3 className="text-xl font-bold text-white group-hover:text-dourado-farol transition-colors">
-              {porto.texto}
-            </h3>
+            <div>
+               <h3 className={`text-xl font-bold transition-all ${porto.concluido ? 'text-dourado-farol/50 line-through' : 'text-white group-hover:text-dourado-farol'}`}>
+                {porto.texto}
+              </h3>
+            </div>
+
+            <button 
+              onClick={() => handleTogglePorto(porto.id)}
+              className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center text-lg
+                ${porto.concluido 
+                  ? 'bg-dourado-farol border-dourado-farol shadow-glow' 
+                  : 'border-white/10 hover:border-dourado-farol text-white/20 hover:text-dourado-farol'}`}
+            >
+              ⚓
+            </button>
           </div>
 
           {porto.descricao && (
             <p className="text-cinza-suave text-sm mb-6">{porto.descricao}</p>
+          )}
+
+          {/* 2. BARRA DE PROGRESSO VISUAL */}
+          {totalPontos > 0 && (
+            <div className="mb-6 animate-fade-in">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                  Iluminação do Destino
+                </span>
+                <span className="text-dourado-farol text-xs font-bold">{porcentagem}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-dourado-farol shadow-glow transition-all duration-1000 ease-out"
+                  style={{ width: `${porcentagem}%` }}
+                />
+              </div>
+            </div>
           )}
 
           {/* LISTAGEM DOS PONTOS DE LUZ (Submetas) */}
@@ -93,8 +139,9 @@ function ListaMetas({ metas, onUpdate }) {
             </button>
           </div>
         </div>
-      ))}
-    </div>
+      );
+      })}
+  </div>
   );
 }
 
