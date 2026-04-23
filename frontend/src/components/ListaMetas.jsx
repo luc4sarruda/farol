@@ -45,6 +45,17 @@ function ListaMetas({ metas, onUpdate }) {
   }
 };
 
+const handleDeletePorto = async (portoId) => {
+  if (!window.confirm("Tem certeza que deseja abandonar este Porto Seguro? Todas as luzes se apagarão.")) return;
+  
+  try {
+    await axios.delete(`http://127.0.0.1:5000/metas/${portoId}`);
+    onUpdate();
+  } catch (error) {
+    console.error("Erro ao deletar porto:", error);
+  }
+};
+
   return (
     <div className="grid gap-6">
       {metas.map((porto) => {
@@ -62,16 +73,26 @@ function ListaMetas({ metas, onUpdate }) {
                 {porto.texto}
               </h3>
             </div>
-
-            <button 
-              onClick={() => handleTogglePorto(porto.id)}
-              className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center text-lg
-                ${porto.concluido 
-                  ? 'bg-dourado-farol border-dourado-farol shadow-glow' 
-                  : 'border-white/10 hover:border-dourado-farol text-white/20 hover:text-dourado-farol'}`}
-            >
-              ⚓
-            </button>
+            <div className="flex items-center gap-2">
+              
+              {/* Botão de Lixeira (Exclusão) */}
+              <button 
+                onClick={() => handleDeletePorto(porto.id)}
+                className="opacity-0 group-hover:opacity-100 p-2 text-white/20 hover:text-red-400 transition-all duration-300"
+                title="Excluir Porto Seguro"
+              >
+                <span className="text-lg">🗑️</span>
+              </button>
+              <button 
+                onClick={() => handleTogglePorto(porto.id)}
+                className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center text-lg
+                  ${porto.concluido 
+                    ? 'bg-dourado-farol border-dourado-farol shadow-glow' 
+                    : 'border-white/10 hover:border-dourado-farol text-white/20 hover:text-dourado-farol'}`}
+              >
+                ⚓
+              </button>
+            </div>
           </div>
 
           {porto.descricao && (

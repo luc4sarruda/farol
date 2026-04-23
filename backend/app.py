@@ -236,6 +236,20 @@ def login():
 
 # ---------------------------------
 
+@app.route('/metas/<int:porto_id>', methods=['DELETE'])
+@login_required
+def delete_porto(porto_id):
+    # Buscamos o porto garantindo que pertença ao usuário
+    porto = PortoSeguro.query.filter_by(id=porto_id, user_id=current_user.id).first_or_404()
+    
+    try:
+        db.session.delete(porto)
+        db.session.commit()
+        return '', 204 # 204 No Content é o padrão para exclusão bem-sucedida
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': 'Não foi possível apagar o Porto Seguro'}), 500
+
 # --- ROTA DE CHECK_SESSION ---
 @app.route('/check_session')
 @login_required
